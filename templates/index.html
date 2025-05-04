@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Potato Leaf Detection</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            max-width: 800px;
+            margin-top: 50px;
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .upload-area {
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            border-color: #0d6efd;
+            background-color: #f8f9fa;
+        }
+        .preview-image {
+            max-width: 100%;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .loading {
+            display: none;
+        }
+        .results {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card p-4">
+            <h1 class="text-center mb-4">Potato Leaf Detection</h1>
+            <p class="text-center text-muted mb-4">Upload an image of a potato leaf to detect diseases using YOLO</p>
+            
+            <div class="upload-area" id="uploadArea">
+                <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                <i class="bi bi-cloud-upload" style="font-size: 48px;"></i>
+                <h5 class="mt-3">Click to upload or drag and drop</h5>
+                <p class="text-muted">PNG, JPG, JPEG up to 16MB</p>
+            </div>
+
+            <div class="loading text-center mt-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Processing image...</p>
+            </div>
+
+            <div class="results mt-4">
+                <h4>Detection Results</h4>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Original Image</h6>
+                        <img id="originalImage" class="preview-image" src="" alt="Original">
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Processed Image</h6>
+                        <img id="processedImage" class="preview-image" src="" alt="Processed">
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <h6>Detections</h6>
+                    <div id="detectionResults" class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Class</th>
+                                    <th>Confidence</th>
+                                    <th>Bounding Box</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detectionTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const loading = document.querySelector('.loading');
+        const results = document.querySelector('.results');
+        const originalImage = document.getElementById('originalImage');
+        const processedImage = document.getElementById('processedImage');
+        const detectionTableBody = document.getElementById('detectionTableBody');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#0d6efd';
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = '#dee2e6';
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#dee2e6';
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+
+        function handleFile(file) {
+            if (!file.type.match('image.*')) {
+                alert('Please upload an image file');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            loading.style.display = 'block';
+            results.style.display = 'none';
+
+            fetch('/detect', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';
+                results.style.display = 'block';
+
+                if (data.success) {
+                    originalImage.src = data.original_image;
+                    processedImage.src = data.processed_image;
+
+                    detectionTableBody.innerHTML = '';
+                    data.detections.forEach(detection => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${detection.class}</td>
+                            <td>${(detection.confidence * 100).toFixed(2)}%</td>
+                            <td>${detection.bbox.map(coord => coord.toFixed(2)).join(', ')}</td>
+                        `;
+                        detectionTableBody.appendChild(row);
+                    });
+                } else {
+                    alert(data.error || 'An error occurred during detection');
+                }
+            })
+            .catch(error => {
+                loading.style.display = 'none';
+                alert('An error occurred while processing the image');
+                console.error('Error:', error);
+            });
+        }
+    </script>
+</body>
+</html> 

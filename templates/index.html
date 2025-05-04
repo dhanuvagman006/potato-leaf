@@ -30,6 +30,10 @@
             border-color: #0d6efd;
             background-color: #f8f9fa;
         }
+        .upload-area.dragover {
+            border-color: #0d6efd;
+            background-color: #e9f0ff;
+        }
         .preview-image {
             max-width: 100%;
             border-radius: 10px;
@@ -109,16 +113,16 @@
         
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
-            uploadArea.style.borderColor = '#0d6efd';
+            uploadArea.classList.add('dragover');
         });
 
         uploadArea.addEventListener('dragleave', () => {
-            uploadArea.style.borderColor = '#dee2e6';
+            uploadArea.classList.remove('dragover');
         });
 
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
-            uploadArea.style.borderColor = '#dee2e6';
+            uploadArea.classList.remove('dragover');
             const file = e.dataTransfer.files[0];
             if (file) handleFile(file);
         });
@@ -175,4 +179,4 @@
         }
     </script>
 </body>
-</html> 
+</html>
